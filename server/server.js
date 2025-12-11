@@ -40,6 +40,11 @@ app.post('/api/auth/register', async (req, res) => {
   const { email, password, firstName, lastName, phone } = req.body
   const db = getDb()
 
+  // Validate password length
+  if (!password || password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters long' })
+  }
+
   try {
     const hashedPassword = await bcrypt.hash(password, 10)
     
@@ -267,43 +272,85 @@ app.post('/api/orders', requireAuth, (req, res) => {
         return res.status(400).json({ error: 'Cart is empty' })
       }
 
-      // Create order
-      db.run(
-        'INSERT INTO orders (userId, total, shippingAddress, status) VALUES (?, ?, ?, ?)',
-        [userId, total, JSON.stringify(shippingAddress), 'confirmed'],
-        function(err) {
-          if (err) {
-            return res.status(500).json({ error: 'Failed to create order' })
-          }
+      // Verify stock availability before creating order
+      let stockCheckCompleted = 0
+      let stockErrors = []
 
-          const orderId = this.lastID
-
-          // Add order items
-          const stmt = db.prepare(
-            'INSERT INTO order_items (orderId, productId, size, color, quantity, price) VALUES (?, ?, ?, ?, ?, ?)'
-          )
-
-          let completed = 0
-          cartItems.forEach((item) => {
-            // Get product price
-            db.get('SELECT price FROM products WHERE id = ?', [item.productId], (err, product) => {
-              if (!err && product) {
-                stmt.run([orderId, item.productId, item.size, item.color, item.quantity, product.price])
+      cartItems.forEach((item) => {
+        db.get(
+          'SELECT quantity FROM stock WHERE productId = ? AND size = ? AND color = ?',
+          [item.productId, item.size, item.color || ''],
+          (err, stock) => {
+            if (err || !stock) {
+              stockErrors.push(`Product ${item.productId} is not available`)
+            } else if (stock.quantity < item.quantity) {
+              stockErrors.push(`Insufficient stock for product ${item.productId}. Available: ${stock.quantity}, Requested: ${item.quantity}`)
+            }
+            
+            stockCheckCompleted++
+            
+            if (stockCheckCompleted === cartItems.length) {
+              if (stockErrors.length > 0) {
+                return res.status(400).json({ error: stockErrors.join(', ') })
               }
-              completed++
               
-              if (completed === cartItems.length) {
-                stmt.finalize()
+              // All stock checks passed, create order
+              createOrderAndUpdateStock()
+            }
+          }
+        )
+      })
+
+      function createOrderAndUpdateStock() {
+        // Create order
+        db.run(
+          'INSERT INTO orders (userId, total, shippingAddress, status) VALUES (?, ?, ?, ?)',
+          [userId, total, JSON.stringify(shippingAddress), 'confirmed'],
+          function(err) {
+            if (err) {
+              return res.status(500).json({ error: 'Failed to create order' })
+            }
+
+            const orderId = this.lastID
+
+            // Add order items and decrement stock
+            const stmt = db.prepare(
+              'INSERT INTO order_items (orderId, productId, size, color, quantity, price) VALUES (?, ?, ?, ?, ?, ?)'
+            )
+
+            let completed = 0
+            cartItems.forEach((item) => {
+              // Get product price
+              db.get('SELECT price FROM products WHERE id = ?', [item.productId], (err, product) => {
+                if (!err && product) {
+                  stmt.run([orderId, item.productId, item.size, item.color, item.quantity, product.price])
+                  
+                  // Decrement stock
+                  db.run(
+                    'UPDATE stock SET quantity = quantity - ? WHERE productId = ? AND size = ? AND color = ?',
+                    [item.quantity, item.productId, item.size, item.color || ''],
+                    (updateErr) => {
+                      if (updateErr) {
+                        console.error('Error updating stock:', updateErr)
+                      }
+                    }
+                  )
+                }
+                completed++
                 
-                // Clear cart
-                db.run('DELETE FROM cart_items WHERE userId = ?', [userId], () => {
-                  res.json({ orderId, message: 'Order created' })
-                })
-              }
+                if (completed === cartItems.length) {
+                  stmt.finalize()
+                  
+                  // Clear cart
+                  db.run('DELETE FROM cart_items WHERE userId = ?', [userId], () => {
+                    res.json({ orderId, message: 'Order created successfully' })
+                  })
+                }
+              })
             })
-          })
-        }
-      )
+          }
+        )
+      }
     }
   )
 })

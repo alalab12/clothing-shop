@@ -24,8 +24,6 @@
           />
         </div>
 
-        <div v-if="error" class="error">{{ error }}</div>
-
         <button type="submit" class="submit-btn" :disabled="loading">
           {{ loading ? 'Logging in...' : 'Login' }}
         </button>
@@ -71,11 +69,11 @@ export default {
           console.log('Redirecting to home...')
           await router.push('/')
         } else {
-          error.value = result.error || 'Login failed'
+          alert(result.error || 'Login failed')
         }
       } catch (err) {
         console.error('Login exception:', err)
-        error.value = 'An error occurred during login'
+        alert('An error occurred during login')
       } finally {
         loading.value = false
       }

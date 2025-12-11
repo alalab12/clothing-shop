@@ -50,8 +50,6 @@
               />
             </div>
 
-            <div v-if="error" class="error">{{ error }}</div>
-
             <button type="submit" class="submit-btn" :disabled="submitting">
               {{ submitting ? 'Processing...' : 'Finish' }}
             </button>
@@ -124,7 +122,7 @@ export default {
           }
         })
       } catch (err) {
-        error.value = err.message || 'Failed to create order'
+        alert(err.message || 'Failed to create order')
       } finally {
         submitting.value = false
       }

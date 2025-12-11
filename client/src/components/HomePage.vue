@@ -1,15 +1,12 @@
 <template>
   <main class="home">
-    <section class="hero">
+    <section class="hero" :style="{ backgroundImage: `url(${nanjingImage})` }">
       <div class="hero-copy">
         <h1>Black & White. Bold & Simple.</h1>
         <div class="actions">
           <router-link to="/dresses" class="primary">Shop</router-link>
         </div>
       </div>
-      <figure class="hero-media">
-        <img :src="heroImage" alt="Statement silhouette" />
-      </figure>
     </section>
 
     <section id="about" class="section-heading">
@@ -72,6 +69,7 @@ export default {
   data() {
     return {
       heroImage: require('@/img/basket.jpg'),
+      nanjingImage: require('@/img/nanjing.jpg'),
       designers: [
         {
           name: 'Karys',
@@ -152,7 +150,7 @@ export default {
 .home {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 0 1.5rem 4rem;
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
@@ -162,16 +160,40 @@ export default {
 
 .hero {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
+  justify-content: center;
   align-items: center;
+  min-height: 100vh;
+  position: relative;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  filter: grayscale(100%);
+  margin-top: -1.5rem;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  width: 100vw;
+  padding: 4rem 2rem;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(249, 248, 244, 0.60);
+  z-index: 0;
 }
 
 .hero-copy {
-  flex: 1 1 280px;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 2;
 }
 
 .hero-copy h1 {
@@ -205,16 +227,6 @@ export default {
 .primary:hover {
   background: #333;
   border-color: #333;
-}
-
-.hero-media {
-  flex: 1 1 280px;
-}
-
-.hero-media img {
-  width: 100%;
-  border: 1px solid var(--color-border);
-  filter: grayscale(100%);
 }
 
 .section-heading {
@@ -300,6 +312,60 @@ export default {
   font-size: 1.8rem;
   font-weight: 400;
   color: var(--color-text-primary);
+}
+
+.register-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+}
+
+.register-card input,
+.register-card textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s ease;
+}
+
+.register-card input:focus,
+.register-card textarea:focus {
+  outline: none;
+  border-color: var(--color-text-primary);
+}
+
+.register-card button {
+  background: var(--color-text-primary);
+  color: var(--color-bg-card);
+  border: none;
+  padding: 0.95rem;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.5rem;
+}
+
+.register-card button:hover:not(:disabled) {
+  background: #2a2a2a;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.register-card button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .success {

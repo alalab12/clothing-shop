@@ -57,10 +57,11 @@ export default {
 <style>
 /* Root Variables */
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Arial', 'Helvetica', sans-serif;
   color: #222;
   background-color: #f9f8f4;
   line-height: 1.5;
+  letter-spacing: 0.05em;
   
   --color-bg-page: #f9f8f4;
   --color-bg-card: #fffffe;

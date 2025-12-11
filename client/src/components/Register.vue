@@ -52,11 +52,9 @@
             v-model="password" 
             required 
             placeholder="••••••••"
-            minlength="6"
           />
+          <small class="hint">Minimum 8 characters</small>
         </div>
-
-        <div v-if="error" class="error">{{ error }}</div>
 
         <button type="submit" class="submit-btn" :disabled="loading">
           {{ loading ? 'Creating account...' : 'Register' }}
@@ -92,6 +90,22 @@ export default {
 
     const handleRegister = async () => {
       error.value = ''
+      
+      // Validation du mot de passe
+      if (password.value.length < 8) {
+        alert('Password must be at least 8 characters long.')
+        return
+      }
+      
+      // Validation du numéro de téléphone (si fourni)
+      if (phone.value.trim() !== '') {
+        const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,5}[-\s.]?[0-9]{1,5}$/
+        if (!phoneRegex.test(phone.value.trim())) {
+          alert('Please enter a valid phone number (e.g., +1 234 567 8900 or 0123456789).')
+          return
+        }
+      }
+      
       loading.value = true
 
       try {
@@ -108,11 +122,11 @@ export default {
           console.log('Registration successful, redirecting...')
           await router.push('/')
         } else {
-          error.value = result.error || 'Registration failed'
+          alert(result.error || 'Registration failed')
         }
       } catch (err) {
         console.error('Registration exception:', err)
-        error.value = 'An error occurred during registration'
+        alert('An error occurred during registration')
       } finally {
         loading.value = false
       }
@@ -185,6 +199,13 @@ input {
 input:focus {
   outline: none;
   border-color: #000;
+}
+
+.hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  color: #666;
 }
 
 .error {
