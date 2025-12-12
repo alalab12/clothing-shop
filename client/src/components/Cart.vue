@@ -1,7 +1,7 @@
 <template>
   <div class="cart-page">
     <div class="container">
-      <div v-if="!auth.isAuthenticated()" class="auth-required">
+      <div v-if="!auth.isAuthenticated.value" class="auth-required">
         <h1>Please Sign In</h1>
         <p>You need to be logged in to view your cart.</p>
         <div class="auth-links">
@@ -51,11 +51,11 @@
           <h2>Order Summary</h2>
           <div class="summary-row">
             <span>Subtotal</span>
-            <span>¥{{ cart.cartTotal.value.toFixed(2) }}</span>
+            <span>¥{{ cart.cartTotal.value }}</span>
           </div>
           <div class="summary-total">
             <span>Total</span>
-            <span>¥{{ cart.cartTotal.value.toFixed(2) }}</span>
+            <span>¥{{ cart.cartTotal.value }}</span>
           </div>
           <button @click="proceedToCheckout" class="checkout-btn">
             Proceed to Checkout
@@ -89,7 +89,7 @@ export default {
     }
 
     onMounted(() => {
-      if (auth.isAuthenticated()) {
+      if (auth.isAuthenticated.value) {
         cart.syncWithServer()
       }
     })

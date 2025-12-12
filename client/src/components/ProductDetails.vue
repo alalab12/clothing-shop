@@ -105,7 +105,7 @@ export default {
     }
 
     const addToCart = async () => {
-      if (!auth.isAuthenticated()) {
+      if (!auth.isAuthenticated.value) {
         message.value = 'Please login to add items to cart'
         messageType.value = 'error'
         setTimeout(() => {

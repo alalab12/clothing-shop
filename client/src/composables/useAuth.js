@@ -1,9 +1,25 @@
-import { ref } from 'vue'
+/**
+ * Authentication Composable (useAuth)
+ * 
+ * Manages user authentication state and operations
+ * Centralizes all auth-related logic for reusability across components
+ * 
+ * Pattern: Composition API composable for state management
+ * Reference: 04-vue.pdf - Composition API & Custom Composables
+ * Reference: 03-ModernFrontEnd.pdf - State Management Pattern
+ * 
+ * Usage:
+ *   const { user, isAuthenticated, login, logout, register } = useAuth()
+ */
+
+import { ref, computed } from 'vue'
 import { authAPI } from '../services/api'
 
-// État global partagé entre toutes les instances
+// Global state - shared across all component instances
+// Reference: 03-ModernFrontEnd.pdf - Centralized state management
 const user = ref(null)
 const loading = ref(false)
+const errors = ref([])
 
 export function useAuth() {
   const login = async (email, password) => {
@@ -74,17 +90,23 @@ export function useAuth() {
     }
   }
 
-  const isAuthenticated = () => {
-    return user.value !== null
-  }
+  /**
+   * Computed property to check if user is authenticated
+   * Reference: 04-vue.pdf - Computed Properties
+   */
+  const isAuthenticated = computed(() => user.value !== null)
 
   return {
+    // State
     user,
     loading,
+    errors,
+    isAuthenticated,
+    
+    // Methods
     login,
     register,
     logout,
-    checkSession,
-    isAuthenticated
+    checkSession
   }
 }

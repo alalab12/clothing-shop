@@ -70,7 +70,7 @@
           </div>
           <div class="summary-total">
             <span>Total</span>
-            <span>¥{{ cart.cartTotal.value.toFixed(2) }}</span>
+            <span>¥{{ cart.cartTotal.value }}</span>
           </div>
         </div>
       </div>
@@ -118,7 +118,7 @@ export default {
           path: '/order-confirmation',
           query: {
             orderId: result.orderId,
-            total: cart.cartTotal.value.toFixed(2)
+            total: cart.cartTotal.value
           }
         })
       } catch (err) {

@@ -1,425 +1,147 @@
+/**
+ * Clothing Shop API Server
+ * 
+ * Main application entry point
+ * 
+ * Architecture: Modern Backend with MVC Pattern
+ * - Routes: API endpoints with proper HTTP methods
+ * - Controllers: Request/response handling
+ * - Services: Business logic
+ * - Middlewares: Authentication, validation, error handling
+ * 
+ * Reference: 
+ * - 05-ModernBackEnd.pdf: MVC Architecture, API Design
+ * - 06-Nodejs.pdf: Express.js, Middleware, Routing
+ * - 07-Authentication and database.pdf: Session-based authentication
+ */
+
 const express = require('express')
 const session = require('express-session')
 const cors = require('cors')
-const bcrypt = require('bcrypt')
-const { initDatabase, getDb } = require('./database')
+const { initDatabase } = require('./database')
+
+// Import routes
+const authRoutes = require('./routes/authRoutes')
+const productRoutes = require('./routes/productRoutes')
+const cartRoutes = require('./routes/cartRoutes')
+const orderRoutes = require('./routes/orderRoutes')
+const profileRoutes = require('./routes/profileRoutes')
+const contactRoutes = require('./routes/contactRoutes')
+
+// Import middleware
+const { errorHandler } = require('./middleware/errorHandler')
 
 const app = express()
 const PORT = 3000
 
-// Middleware
+// ===== CONFIGURATION =====
+
+/**
+ * CORS Configuration
+ * Allow requests from frontend (localhost:8080, 8081)
+ * Credentials enabled for session cookies
+ * 
+ * Reference: 06-Nodejs.pdf - CORS configuration
+ */
 app.use(cors({
   origin: ['http://localhost:8080', 'http://localhost:8081'],
   credentials: true
 }))
+
+/**
+ * Body Parser Middleware
+ * Parse JSON request bodies
+ */
 app.use(express.json())
+
+/**
+ * Session Configuration
+ * Implements stateful authentication using express-session
+ * 
+ * Reference: 07-Authentication and database.pdf - Stateful Authentication
+ * - secret: Used to sign the session ID cookie
+ * - resave: Don't save session if unmodified
+ * - saveUninitialized: Don't create session until something stored
+ * - secure: false (set to true in production with HTTPS)
+ * - httpOnly: Cookie not accessible by client-side JavaScript (prevents XSS)
+ * - sameSite: 'lax' prevents CSRF attacks
+ */
 app.use(session({
-  secret: 'clothing-shop-secret-key',
+  secret: 'clothing-shop-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
-    sameSite: 'lax'
+    secure: false,        // Set to true in production with HTTPS
+    httpOnly: true,       // Prevents JavaScript from accessing the cookie
+    maxAge: 24 * 60 * 60 * 1000,  // 24 hours
+    sameSite: 'lax'       // CSRF protection
   }
 }))
 
-// Auth middleware
-const requireAuth = (req, res, next) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: 'Authentication required' })
+
+// ===== ROUTES =====
+
+/**
+ * Route Organization
+ * Routes are modular and grouped by feature
+ * Each route file contains related endpoints
+ * 
+ * Pattern: RESTful API design
+ * Reference: 05-ModernBackEnd.pdf & 06-Nodejs.pdf
+ */
+
+// Authentication routes (public)
+app.use('/api/auth', authRoutes)
+
+// Product routes (public)
+app.use('/api/products', productRoutes)
+
+// Cart routes (protected)
+app.use('/api/cart', cartRoutes)
+
+// Order routes (protected)
+app.use('/api/orders', orderRoutes)
+
+// Profile routes (protected)
+app.use('/api/profile', profileRoutes)
+
+// Contact routes (public)
+app.use('/api/contact', contactRoutes)
+
+// ===== ERROR HANDLING =====
+
+/**
+ * Global Error Handler
+ * Must be registered as the last middleware
+ * 
+ * Reference: 06-Nodejs.pdf - Error-handling middleware
+ */
+app.use(errorHandler)
+
+// ===== SERVER INITIALIZATION =====
+
+/**
+ * Initialize database and start server
+ * Uses async/await for cleaner error handling
+ */
+const startServer = async () => {
+  try {
+    // Initialize database (create tables if needed)
+    await initDatabase()
+    console.log('✓ Database initialized')
+
+    // Start listening for requests
+    app.listen(PORT, () => {
+      console.log(`✓ Server running on http://localhost:${PORT}`)
+      console.log(`✓ CORS enabled for http://localhost:8080, 8081`)
+    })
+  } catch (error) {
+    console.error('✗ Failed to start server:', error)
+    process.exit(1)
   }
-  next()
 }
 
-// ===== AUTH ROUTES =====
+// Start the server
+startServer()
 
-// Register
-app.post('/api/auth/register', async (req, res) => {
-  const { email, password, firstName, lastName, phone } = req.body
-  const db = getDb()
-
-  // Validate password length
-  if (!password || password.length < 8) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters long' })
-  }
-
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10)
-    
-    db.run(
-      'INSERT INTO users (email, password, firstName, lastName, phone) VALUES (?, ?, ?, ?, ?)',
-      [email, hashedPassword, firstName, lastName, phone || null],
-      function(err) {
-        if (err) {
-          if (err.message.includes('UNIQUE')) {
-            return res.status(400).json({ error: 'Email already exists' })
-          }
-          return res.status(500).json({ error: 'Registration failed' })
-        }
-        
-        req.session.userId = this.lastID
-        req.session.save((saveErr) => {
-          if (saveErr) {
-            return res.status(500).json({ error: 'Session error' })
-          }
-          res.json({
-            user: { id: this.lastID, email, firstName, lastName, phone }
-          })
-        })
-      }
-    )
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' })
-  }
-})
-
-// Login
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body
-  const db = getDb()
-
-  db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
-    if (err || !user) {
-      return res.status(401).json({ error: 'Invalid credentials' })
-    }
-
-    try {
-      const match = await bcrypt.compare(password, user.password)
-      if (!match) {
-        return res.status(401).json({ error: 'Invalid credentials' })
-      }
-
-      req.session.userId = user.id
-      req.session.save((saveErr) => {
-        if (saveErr) {
-          return res.status(500).json({ error: 'Session error' })
-        }
-        res.json({
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            phone: user.phone
-          }
-        })
-      })
-    } catch (error) {
-      res.status(500).json({ error: 'Server error' })
-    }
-  })
-})
-
-// Logout
-app.post('/api/auth/logout', (req, res) => {
-  req.session.destroy()
-  res.json({ message: 'Logged out' })
-})
-
-// Check session
-app.get('/api/auth/session', (req, res) => {
-  if (!req.session.userId) {
-    return res.json({ user: null })
-  }
-
-  const db = getDb()
-  db.get('SELECT id, email, firstName, lastName, phone FROM users WHERE id = ?', 
-    [req.session.userId], 
-    (err, user) => {
-      if (err || !user) {
-        return res.json({ user: null })
-      }
-      res.json({ user })
-    }
-  )
-})
-
-// ===== PRODUCT ROUTES =====
-
-// Get all products
-app.get('/api/products', (req, res) => {
-  const db = getDb()
-  db.all('SELECT * FROM products ORDER BY category, name', (err, products) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to fetch products' })
-    }
-    res.json({ products })
-  })
-})
-
-// Get product by ID
-app.get('/api/products/:id', (req, res) => {
-  const db = getDb()
-  const { id } = req.params
-
-  db.get('SELECT * FROM products WHERE id = ?', [id], (err, product) => {
-    if (err || !product) {
-      return res.status(404).json({ error: 'Product not found' })
-    }
-
-    // Get available sizes and colors
-    db.all(
-      'SELECT DISTINCT size, color FROM stock WHERE productId = ? AND quantity > 0',
-      [id],
-      (err, stock) => {
-        if (err) {
-          return res.status(500).json({ error: 'Failed to fetch stock' })
-        }
-
-        const sizes = [...new Set(stock.map(s => s.size))]
-        const colors = [...new Set(stock.map(s => s.color))]
-
-        res.json({
-          product: {
-            ...product,
-            sizes,
-            colors
-          }
-        })
-      }
-    )
-  })
-})
-
-// ===== CART ROUTES =====
-
-// Get cart
-app.get('/api/cart', requireAuth, (req, res) => {
-  const db = getDb()
-  const userId = req.session.userId
-
-  db.all(
-    `SELECT ci.id, ci.productId, ci.size, ci.color, ci.quantity,
-            p.name, p.price, p.image, p.category
-     FROM cart_items ci
-     JOIN products p ON ci.productId = p.id
-     WHERE ci.userId = ?`,
-    [userId],
-    (err, items) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to fetch cart' })
-      }
-      res.json({ items })
-    }
-  )
-})
-
-// Add to cart
-app.post('/api/cart', requireAuth, (req, res) => {
-  const db = getDb()
-  const userId = req.session.userId
-  const { productId, size, color, quantity } = req.body
-
-  db.run(
-    'INSERT INTO cart_items (userId, productId, size, color, quantity) VALUES (?, ?, ?, ?, ?)',
-    [userId, productId, size, color || null, quantity || 1],
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to add to cart' })
-      }
-      res.json({ id: this.lastID, message: 'Added to cart' })
-    }
-  )
-})
-
-// Remove from cart
-app.delete('/api/cart/:id', requireAuth, (req, res) => {
-  const db = getDb()
-  const userId = req.session.userId
-  const { id } = req.params
-
-  db.run(
-    'DELETE FROM cart_items WHERE id = ? AND userId = ?',
-    [id, userId],
-    (err) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to remove item' })
-      }
-      res.json({ message: 'Item removed' })
-    }
-  )
-})
-
-// Clear cart
-app.delete('/api/cart', requireAuth, (req, res) => {
-  const db = getDb()
-  const userId = req.session.userId
-
-  db.run('DELETE FROM cart_items WHERE userId = ?', [userId], (err) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to clear cart' })
-    }
-    res.json({ message: 'Cart cleared' })
-  })
-})
-
-// ===== ORDER ROUTES =====
-
-// Create order
-app.post('/api/orders', requireAuth, (req, res) => {
-  const db = getDb()
-  const userId = req.session.userId
-  const { total, shippingAddress } = req.body
-
-  // Get cart items
-  db.all(
-    'SELECT * FROM cart_items WHERE userId = ?',
-    [userId],
-    (err, cartItems) => {
-      if (err || !cartItems.length) {
-        return res.status(400).json({ error: 'Cart is empty' })
-      }
-
-      // Verify stock availability before creating order
-      let stockCheckCompleted = 0
-      let stockErrors = []
-
-      cartItems.forEach((item) => {
-        db.get(
-          'SELECT quantity FROM stock WHERE productId = ? AND size = ? AND color = ?',
-          [item.productId, item.size, item.color || ''],
-          (err, stock) => {
-            if (err || !stock) {
-              stockErrors.push(`Product ${item.productId} is not available`)
-            } else if (stock.quantity < item.quantity) {
-              stockErrors.push(`Insufficient stock for product ${item.productId}. Available: ${stock.quantity}, Requested: ${item.quantity}`)
-            }
-            
-            stockCheckCompleted++
-            
-            if (stockCheckCompleted === cartItems.length) {
-              if (stockErrors.length > 0) {
-                return res.status(400).json({ error: stockErrors.join(', ') })
-              }
-              
-              // All stock checks passed, create order
-              createOrderAndUpdateStock()
-            }
-          }
-        )
-      })
-
-      function createOrderAndUpdateStock() {
-        // Create order
-        db.run(
-          'INSERT INTO orders (userId, total, shippingAddress, status) VALUES (?, ?, ?, ?)',
-          [userId, total, JSON.stringify(shippingAddress), 'confirmed'],
-          function(err) {
-            if (err) {
-              return res.status(500).json({ error: 'Failed to create order' })
-            }
-
-            const orderId = this.lastID
-
-            // Add order items and decrement stock
-            const stmt = db.prepare(
-              'INSERT INTO order_items (orderId, productId, size, color, quantity, price) VALUES (?, ?, ?, ?, ?, ?)'
-            )
-
-            let completed = 0
-            cartItems.forEach((item) => {
-              // Get product price
-              db.get('SELECT price FROM products WHERE id = ?', [item.productId], (err, product) => {
-                if (!err && product) {
-                  stmt.run([orderId, item.productId, item.size, item.color, item.quantity, product.price])
-                  
-                  // Decrement stock
-                  db.run(
-                    'UPDATE stock SET quantity = quantity - ? WHERE productId = ? AND size = ? AND color = ?',
-                    [item.quantity, item.productId, item.size, item.color || ''],
-                    (updateErr) => {
-                      if (updateErr) {
-                        console.error('Error updating stock:', updateErr)
-                      }
-                    }
-                  )
-                }
-                completed++
-                
-                if (completed === cartItems.length) {
-                  stmt.finalize()
-                  
-                  // Clear cart
-                  db.run('DELETE FROM cart_items WHERE userId = ?', [userId], () => {
-                    res.json({ orderId, message: 'Order created successfully' })
-                  })
-                }
-              })
-            })
-          }
-        )
-      }
-    }
-  )
-})
-
-// Get user orders
-app.get('/api/orders', requireAuth, (req, res) => {
-  const db = getDb()
-  const userId = req.session.userId
-
-  db.all(
-    'SELECT * FROM orders WHERE userId = ? ORDER BY createdAt DESC',
-    [userId],
-    (err, orders) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to fetch orders' })
-      }
-      res.json({ orders })
-    }
-  )
-})
-
-// ===== PROFILE ROUTE =====
-
-app.get('/api/profile', requireAuth, (req, res) => {
-  const db = getDb()
-  const userId = req.session.userId
-
-  db.get('SELECT id, email, firstName, lastName, phone FROM users WHERE id = ?',
-    [userId],
-    (err, user) => {
-      if (err || !user) {
-        return res.status(404).json({ error: 'User not found' })
-      }
-      res.json({ user })
-    }
-  )
-})
-
-// ===== CONTACT ROUTE =====
-
-app.post('/api/contact', (req, res) => {
-  const db = getDb()
-  const { email, message } = req.body
-
-  if (!email || !message) {
-    return res.status(400).json({ error: 'Email and message are required' })
-  }
-
-  db.run(
-    'INSERT INTO contact_messages (email, message) VALUES (?, ?)',
-    [email, message],
-    function(err) {
-      if (err) {
-        console.error('Error saving contact message:', err)
-        return res.status(500).json({ error: 'Failed to save message' })
-      }
-      res.json({ success: true, messageId: this.lastID })
-    }
-  )
-})
-
-// Start server
-initDatabase()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`)
-    })
-  })
-  .catch((err) => {
-    console.error('Failed to initialize database:', err)
-    process.exit(1)
-  })
+module.exports = app

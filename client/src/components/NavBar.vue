@@ -60,7 +60,7 @@ export default {
   },
   async mounted() {
     await this.auth.checkSession()
-    if (this.auth.isAuthenticated()) {
+    if (this.auth.isAuthenticated.value) {
       await this.cart.syncWithServer()
     }
   },
