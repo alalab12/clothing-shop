@@ -7,19 +7,21 @@
       <router-link class="brand" to="/">The Totally Spies</router-link>
       <div class="actions">
         <router-link to="/cart" class="cart-link">
-          <img src="@/img/basket.jpg" alt="Panier" class="cart-icon" />
+          <img src="/img/icon/basket.jpg" alt="Panier" class="cart-icon" />
           <span v-if="cartCount > 0" class="cart-badge">{{ cartCount }}</span>
         </router-link>
         <router-link to="/profile" class="profile-link">
-          <img src="@/img/profile.png" alt="Profil" class="profile-icon" />
+          <img src="/img/icon/profile.png" alt="Profil" class="profile-icon" />
         </router-link>
       </div>
     </header>
-    <nav v-if="isOpen" class="menu">
-      <router-link v-for="link in links" :key="link.path" :to="link.path" @click="closeMenu">
-        {{ link.label }}
-      </router-link>
-    </nav>
+    <transition name="slide">
+      <nav v-if="isOpen" class="menu">
+        <router-link v-for="link in links" :key="link.path" :to="link.path" @click="closeMenu">
+          {{ link.label }}
+        </router-link>
+      </nav>
+    </transition>
   </div>
 </template>
 
@@ -48,12 +50,10 @@ export default {
     return {
       isOpen: false,
       links: [
-        { path: '/dresses', label: 'Dresses' },
+        { path: '/sweaters', label: 'Sweaters' },
         { path: '/jeans', label: 'Jeans' },
         { path: '/t-shirts', label: 'T-Shirts' },
         { path: '/jackets', label: 'Jackets' },
-        { path: '/skirts', label: 'Skirts' },
-        { path: '/suiting', label: 'Suiting' },
         { path: '/accessories', label: 'Accessories' }
       ]
     }
@@ -185,6 +185,7 @@ export default {
   border-bottom: 1px solid var(--color-border);
   padding: 0.5rem 1rem 1rem;
   gap: 0.3rem;
+  transition: background 0.3s ease;
 }
 
 .menu a {
@@ -203,5 +204,23 @@ export default {
 .menu a.router-link-active {
   background: var(--color-text-primary);
   color: var(--color-bg-card);
+}
+
+
+/* Menu slide transition */
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+  transform-origin: top;
+}
+
+.slide-enter-from {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>

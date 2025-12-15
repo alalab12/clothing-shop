@@ -17,28 +17,20 @@
             <div class="option-group">
               <label>Size</label>
               <div class="size-options">
-                <button
+                <div
                   v-for="size in product.sizes"
                   :key="size"
-                  @click="selectedSize = size"
-                  :class="{ active: selectedSize === size }"
+                  class="size-wrapper"
                 >
-                  {{ size }}
-                </button>
-              </div>
-            </div>
-
-            <div class="option-group">
-              <label>Color</label>
-              <div class="color-options">
-                <button
-                  v-for="color in product.colors"
-                  :key="color"
-                  @click="selectedColor = color"
-                  :class="{ active: selectedColor === color }"
-                >
-                  {{ color }}
-                </button>
+                  <button
+                    @click="selectSize(size)"
+                    :class="{ active: selectedSize === size, 'out-of-stock': isSizeOutOfStock(size) }"
+                    :disabled="isSizeOutOfStock(size)"
+                  >
+                    {{ size }}
+                  </button>
+                  <span v-if="isSizeOutOfStock(size)" class="stock-label">Out of Stock</span>
+                </div>
               </div>
             </div>
           </div>
@@ -50,9 +42,11 @@
           <button 
             @click="addToCart" 
             class="add-to-cart-btn"
-            :disabled="!selectedSize || addingToCart"
+            :disabled="!selectedSize || addingToCart || isSizeOutOfStock(selectedSize) || allSizesOutOfStock"
           >
-            {{ addingToCart ? 'Adding...' : 'Add to Cart' }}
+            <span v-if="allSizesOutOfStock">Out of Stock</span>
+            <span v-else-if="selectedSize && isSizeOutOfStock(selectedSize)">Out of Stock</span>
+            <span v-else>{{ addingToCart ? 'Adding...' : 'Add to Cart' }}</span>
           </button>
         </div>
       </div>
@@ -63,7 +57,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { productAPI } from '../services/api'
 import { useCart } from '../composables/useCart'
@@ -80,22 +74,22 @@ export default {
     const product = ref(null)
     const loading = ref(true)
     const selectedSize = ref('')
-    const selectedColor = ref('')
     const message = ref('')
     const messageType = ref('success')
     const addingToCart = ref(false)
+    const sizeStock = ref({})
 
     const loadProduct = async () => {
       loading.value = true
       try {
         const data = await productAPI.getById(route.params.id)
         product.value = data.product
+        sizeStock.value = data.product.sizeStock || {}
         
-        if (product.value.sizes && product.value.sizes.length > 0) {
-          selectedSize.value = product.value.sizes[0]
-        }
-        if (product.value.colors && product.value.colors.length > 0) {
-          selectedColor.value = product.value.colors[0]
+        // Auto-select first available size
+        const availableSizes = product.value.sizes.filter(size => (sizeStock.value[size] || 0) > 0)
+        if (availableSizes.length > 0) {
+          selectedSize.value = availableSizes[0]
         }
       } catch (error) {
         console.error('Failed to load product:', error)
@@ -104,7 +98,29 @@ export default {
       }
     }
 
+    const isSizeOutOfStock = (size) => {
+      return (sizeStock.value[size] || 0) === 0
+    }
+
+    const allSizesOutOfStock = computed(() => {
+      if (!product.value || !product.value.sizes) return false
+      return product.value.sizes.every(size => isSizeOutOfStock(size))
+    })
+
+    const selectSize = (size) => {
+      if (!isSizeOutOfStock(size)) {
+        selectedSize.value = size
+        message.value = ''
+      }
+    }
+
     const addToCart = async () => {
+      if (isSizeOutOfStock(selectedSize.value)) {
+        message.value = 'This size is out of stock'
+        messageType.value = 'error'
+        return
+      }
+
       if (!auth.isAuthenticated.value) {
         message.value = 'Please login to add items to cart'
         messageType.value = 'error'
@@ -126,7 +142,6 @@ export default {
       const result = await cart.addItem(
         product.value.id,
         selectedSize.value,
-        selectedColor.value,
         1
       )
 
@@ -152,10 +167,13 @@ export default {
       product,
       loading,
       selectedSize,
-      selectedColor,
       message,
       messageType,
       addingToCart,
+      sizeStock,
+      isSizeOutOfStock,
+      allSizesOutOfStock,
+      selectSize,
       addToCart
     }
   }
@@ -224,13 +242,20 @@ export default {
   margin-bottom: 0.75rem;
 }
 
-.size-options, .color-options {
+.size-options {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
 }
 
-.size-options button, .color-options button {
+.size-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.size-options button {
   background: #fff;
   border: 1px solid #ddd;
   padding: 0.75rem 1.5rem;
@@ -241,14 +266,32 @@ export default {
   font-weight: 500;
 }
 
-.size-options button:hover, .color-options button:hover {
+.size-options button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.size-options button:hover:not(:disabled) {
   border-color: #000;
 }
 
-.size-options button.active, .color-options button.active {
+.size-options button.active {
   background: #000;
   color: #fff;
   border-color: #000;
+}
+
+.size-options button.out-of-stock {
+  border-color: #e5e5e5;
+  color: #999;
+}
+
+.stock-label {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: #999;
+  text-align: center;
 }
 
 .message {

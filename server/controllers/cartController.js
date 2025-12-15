@@ -1,15 +1,9 @@
-/**
- * Cart Controller
- * 
- * Handles HTTP requests for cart routes
- */
+
+// Cart controller - handles cart routes
 
 const cartService = require('../services/cartService')
 
-/**
- * GET /api/cart
- * Fetches user's cart (requires authentication)
- */
+// Get user's cart
 const getCart = async (req, res) => {
   try {
     const items = await cartService.getCart(req.session.userId)
@@ -19,12 +13,9 @@ const getCart = async (req, res) => {
   }
 }
 
-/**
- * POST /api/cart
- * Adds item to cart (requires authentication)
- */
+// Add item to cart
 const addToCart = async (req, res) => {
-  const { productId, size, color, quantity } = req.body
+  const { productId, size, quantity } = req.body
 
   if (!productId) {
     return res.status(400).json({ error: 'Product ID is required' })
@@ -34,7 +25,6 @@ const addToCart = async (req, res) => {
     const item = await cartService.addToCart(req.session.userId, {
       productId,
       size,
-      color,
       quantity
     })
     res.status(201).json({ item, message: 'Added to cart' })
@@ -43,10 +33,7 @@ const addToCart = async (req, res) => {
   }
 }
 
-/**
- * DELETE /api/cart/:id
- * Removes item from cart (requires authentication)
- */
+// Remove item from cart
 const removeFromCart = async (req, res) => {
   try {
     await cartService.removeFromCart(req.session.userId, req.params.id)
@@ -56,22 +43,8 @@ const removeFromCart = async (req, res) => {
   }
 }
 
-/**
- * DELETE /api/cart
- * Clears entire cart (requires authentication)
- */
-const clearCart = async (req, res) => {
-  try {
-    await cartService.clearCart(req.session.userId)
-    res.json({ message: 'Cart cleared' })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-}
-
 module.exports = {
   getCart,
   addToCart,
-  removeFromCart,
-  clearCart
+  removeFromCart
 }

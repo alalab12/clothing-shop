@@ -1,20 +1,13 @@
-/**
- * Authentication Routes
- * 
- * Defines API endpoints for authentication operations
- * Pattern: Express router for modular route organization
- */
 
-const express = require('express')
-const router = express.Router()
-const authController = require('../controllers/authController')
-const { validateRequired, validateEmail, validatePassword, validatePhone } = require('../middleware/validationMiddleware')
+// Auth API routes
+// Defines API endpoints for authentication operations
 
-/**
- * POST /api/auth/register
- * Register a new user
- * Body: { email, password, firstName, lastName, phone? }
- */
+const express = require('express') // Express framework
+const router = express.Router() // Router instance
+const authController = require('../controllers/authController') // Auth handler
+const { validateRequired, validateEmail, validatePassword, validatePhone } = require('../middleware/validationMiddleware') // Validation
+
+// Register new user - POST /api/auth/register
 router.post('/register',
   validateRequired(['email', 'password', 'firstName', 'lastName']),
   validateEmail,
@@ -23,26 +16,17 @@ router.post('/register',
   authController.register
 )
 
-/**
- * POST /api/auth/login
- * Login user
- * Body: { email, password }
- */
+// Login user - POST /api/auth/login
 router.post('/login',
   validateRequired(['email', 'password']),
   authController.login
 )
 
-/**
- * POST /api/auth/logout
- * Logout user
- */
+// Logout user - POST /api/auth/logout
 router.post('/logout', authController.logout)
 
-/**
- * GET /api/auth/session
- * Check authentication status
- */
+// Check session status - GET /api/auth/session
 router.get('/session', authController.getSession)
 
+// Export the router
 module.exports = router

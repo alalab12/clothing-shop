@@ -2,9 +2,9 @@
   <main class="home">
     <section class="hero" :style="{ backgroundImage: `url(${nanjingImage})` }">
       <div class="hero-copy">
-        <h1>Black & White. Bold & Simple.</h1>
+        <h1>The Totally Spies</h1>
         <div class="actions">
-          <router-link to="/dresses" class="primary">Shop</router-link>
+          <router-link to="/sweaters" class="primary">Shop</router-link>
         </div>
       </div>
     </section>
@@ -64,36 +64,36 @@
 </template>
 
 <script>
+// Home page with hero, designers, and contact form
+
+import { contactAPI } from '../services/api' // Contact API service
+
 export default {
   name: 'HomePage',
   data() {
     return {
-      heroImage: require('@/img/basket.jpg'),
-      nanjingImage: require('@/img/nanjing.jpg'),
+      nanjingImage: '/img/background/nanjing.jpg',
       designers: [
         {
           name: 'Karys',
           role: 'Creative Director',
-          story:
-            'Obsessed with sculptural silhouettes and lush fabrics, she leads the overall aesthetic and editorial storytelling.',
-          focus: 'Favorite fabric · washable silk',
-          image: require('@/img/Karys.jpg')
+          story: '',
+          focus: 'Favorite product · washable silk',
+          image: '/img/peoples/Karys.jpg'
         },
         {
           name: 'Meïssa',
           role: 'Technical Designer',
-          story:
-            'She fine-tunes every pattern and fit, ensuring size-inclusive silhouettes and seamless tailoring details.',
-          focus: 'Signature detail · contour waistbands',
-          image: require('@/img/Meissa.jpg')
+          story: '',
+          focus: 'Favorite product · contour waistbands',
+          image: '/img/peoples/Meissa.jpg'
         },
         {
           name: 'Aude',
           role: 'Experience Lead',
-          story:
-            'Aude curates the customer experience—from the site to packaging—so every touchpoint feels intentional.',
-          focus: 'Inspiration · modern galleries and city streets',
-          image: require('@/img/Aude.jpg')
+          story: '',
+          focus: 'Favorite product · modern galleries and city streets',
+          image: '/img/peoples/Aude.jpg'
         }
       ],
       form: {
@@ -106,6 +106,7 @@ export default {
     }
   },
   methods: {
+    // Submit contact form
     async submitRequest() {
       if (!this.form.email || !this.form.message) return
 
@@ -113,22 +114,11 @@ export default {
       this.loading = true
 
       try {
-        const response = await fetch('http://localhost:3000/api/contact', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            email: this.form.email,
-            message: this.form.message
-          })
+        // Send contact message using API service
+        const data = await contactAPI.send({
+          email: this.form.email,
+          message: this.form.message
         })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to send message')
-        }
 
         this.submitted = true
         this.form.email = ''
@@ -240,7 +230,7 @@ export default {
 .about {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .profile-row {
@@ -251,18 +241,20 @@ export default {
   padding: 1rem;
   background: var(--color-bg-card);
   border-radius: var(--radius-md);
+  align-items: center;
 }
 
 .profile-media img {
-  width: 220px;
-  height: 220px;
+  width: 140px;
+  height: 140px;
   object-fit: cover;
   filter: grayscale(100%);
   border-radius: var(--radius-md);
 }
 
 .profile-copy {
-  flex: 1 1 240px;
+  flex: 1;
+  min-width: 250px;
 }
 
 .profile-copy h2 {
@@ -276,18 +268,22 @@ export default {
   margin: 0 0 0.5rem;
   color: var(--color-text-secondary);
   line-height: 1.6;
+  font-size: 0.9rem;
 }
 
 .profile-copy .role {
   text-transform: uppercase;
-  font-size: 0.8rem;
-  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
   color: var(--color-text-secondary);
+  margin-bottom: 0.5rem;
+  display: block;
 }
 
 .profile-copy small {
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
 }
 
 .contact {

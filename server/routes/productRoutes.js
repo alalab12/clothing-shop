@@ -1,23 +1,14 @@
-/**
- * Product Routes
- * 
- * Defines API endpoints for product operations
- */
 
-const express = require('express')
-const router = express.Router()
-const productController = require('../controllers/productController')
+// Product API routes
 
-/**
- * GET /api/products
- * Fetch all products
- */
+const express = require('express') // Express framework
+const router = express.Router() // Router instance
+const productController = require('../controllers/productController') // Product handler
+
+// Get all products
 router.get('/', productController.getAllProducts)
-
-/**
- * GET /api/products/:id
- * Fetch product by ID with available stock
- */
+// Get single product
 router.get('/:id', productController.getProduct)
 
+// Export routes
 module.exports = router

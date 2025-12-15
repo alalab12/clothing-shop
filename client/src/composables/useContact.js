@@ -1,30 +1,16 @@
-/**
- * Contact Composable (useContact)
- * 
- * Manages contact form state and operations
- * Handles contact message submission
- * 
- * Pattern: Composition API composable for state management
- * Reference: 04-vue.pdf - Composition API & Custom Composables
- * 
- * Usage:
- *   const { sendMessage, loading } = useContact()
- */
+// Manages contact form state and operations
+// Handles contact message submission to server
 
-import { ref } from 'vue'
-import { contactAPI } from '../services/api'
+import { ref } from 'vue' // Vue reactivity
+import { contactAPI } from '../services/api' // API calls
 
 // Contact form state
-const loading = ref(false)
-const errors = ref([])
-const successMessage = ref('')
+const loading = ref(false) // Request status
+const errors = ref([]) // Validation errors
+const successMessage = ref('') // Success message
 
 export function useContact() {
-  /**
-   * Send contact message
-   * @param {string} email - Contact email
-   * @param {string} message - Contact message
-   */
+  // Send contact message to server
   const sendMessage = async (email, message) => {
     loading.value = true
     errors.value = []
@@ -42,13 +28,6 @@ export function useContact() {
     }
   }
 
-  /**
-   * Clear all messages
-   */
-  const clearMessages = () => {
-    errors.value = []
-    successMessage.value = ''
-  }
 
   return {
     // State
@@ -57,7 +36,6 @@ export function useContact() {
     successMessage,
     
     // Methods
-    sendMessage,
-    clearMessages
+    sendMessage
   }
 }

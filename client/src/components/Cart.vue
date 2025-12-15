@@ -75,24 +75,29 @@ import { useAuth } from '../composables/useAuth'
 
 export default {
   name: 'Cart',
+
   setup() {
     const router = useRouter()
     const cart = useCart()
     const auth = useAuth()
 
+
     const removeItem = async (itemId) => {
       await cart.removeItem(itemId)
     }
 
+
     const proceedToCheckout = () => {
       router.push('/payment')
     }
+
 
     onMounted(() => {
       if (auth.isAuthenticated.value) {
         cart.syncWithServer()
       }
     })
+
 
     return {
       cart,
@@ -106,12 +111,15 @@ export default {
 </script>
 
 <style scoped>
+/* Page container */
 .cart-page {
   padding: 3.5rem 0 4.5rem;
   min-height: calc(100vh - 80px);
   background: var(--color-bg-page);
 }
 
+
+/* Page title */
 h1 {
   font-size: 1.95rem;
   margin-bottom: 2.2rem;
@@ -120,6 +128,8 @@ h1 {
   color: var(--color-text-primary);
 }
 
+
+/* Auth required section */
 .auth-required {
   text-align: center;
   padding: 3.5rem 2rem;
@@ -145,6 +155,8 @@ h1 {
 
 .auth-links {
   display: flex;
+
+/* Buttons */
   gap: 1.1rem;
   justify-content: center;
   flex-wrap: wrap;
@@ -185,6 +197,8 @@ h1 {
   color: var(--color-bg-card);
   border-color: var(--color-text-primary);
   transform: translateY(-1px);
+
+/* Loading and empty cart states */
 }
 
 .loading, .empty-cart {
@@ -217,16 +231,22 @@ h1 {
 
 .continue-shopping:hover {
   background: #2a2a2a;
+
+/* Cart layout */
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .cart-content {
   display: grid;
+
+/* Cart items list */
   grid-template-columns: 2fr 1fr;
   gap: 2.5rem;
 }
 
+
+/* Individual cart item */
 .cart-items {
   display: flex;
   flex-direction: column;
@@ -258,6 +278,8 @@ h1 {
   border: 1px solid #eeeeee;
 }
 
+
+/* Item details */
 .item-image img {
   width: 100%;
   height: 100%;
@@ -275,6 +297,8 @@ h1 {
   color: var(--color-text-secondary);
   font-size: 0.88rem;
   margin-bottom: 0.3rem;
+
+/* Item price section */
 }
 
 .item-quantity {
@@ -307,6 +331,8 @@ h1 {
   letter-spacing: 0.03em;
   transition: all 0.18s ease;
 }
+
+/* Cart summary section */
 
 .remove-btn:hover {
   background: var(--color-text-primary);
@@ -361,6 +387,8 @@ h1 {
   cursor: pointer;
   transition: all 0.18s ease;
   font-weight: var(--font-weight-medium);
+
+/* Mobile responsive */
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }

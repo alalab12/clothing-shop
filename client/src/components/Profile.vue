@@ -44,7 +44,7 @@
                   <p class="order-number">Order #{{ order.id }}</p>
                   <p class="order-date">{{ formatDate(order.createdAt) }}</p>
                 </div>
-                <div class="order-total">¥{{ order.total.toFixed(2) }}</div>
+                <div class="order-total">¥{{ parseFloat(order.total).toFixed(2) }}</div>
               </div>
               <div class="order-status">
                 <span :class="['status-badge', order.status]">

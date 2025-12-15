@@ -1,33 +1,25 @@
-/**
- * Authentication Controller
- * 
- * Handles HTTP requests for authentication routes
- * Calls services for business logic
- * 
- * Pattern: MVC Controller - Handles request/response and delegates to services
- * Reference: 05-ModernBackEnd.pdf - MVC Pattern
- */
+// Auth controller - handles authentication routes
 
-const authService = require('../services/authService')
-const { validateRegistration, validateLogin } = require('../validators/authValidator')
+const authService = require('../services/authService') // Auth business logic
+const { validateRegistration, validateLogin } = require('../validators/authValidator') // Validation
 
-/**
- * POST /api/auth/register
- * Registers a new user
- */
+// Register new user - POST /api/auth/register
 const register = async (req, res) => {
+  // Validate input data
   const validation = validateRegistration(req.body)
 
+  // Return validation errors
   if (!validation.isValid) {
     return res.status(400).json({ errors: validation.errors })
   }
 
   try {
+    // Create user in database
     const user = await authService.registerUser(req.body)
 
-    // Set session after successful registration
-    // Reference: 07-Authentication and database.pdf - Stateful Authentication
+    // Store user ID in session
     req.session.userId = user.id
+    // Save session to cookie
     req.session.save((err) => {
       if (err) {
         return res.status(500).json({ error: 'Session error' })
@@ -39,21 +31,21 @@ const register = async (req, res) => {
   }
 }
 
-/**
- * POST /api/auth/login
- * Authenticates user and creates session
- */
+// Login user - POST /api/auth/login
 const login = async (req, res) => {
+  // Validate credentials
   const validation = validateLogin(req.body)
 
+  // Return validation errors
   if (!validation.isValid) {
     return res.status(400).json({ errors: validation.errors })
   }
 
   try {
+    // Authenticate user
     const user = await authService.loginUser(req.body.email, req.body.password)
 
-    // Create session
+    // Create session for user
     req.session.userId = user.id
     req.session.save((err) => {
       if (err) {
@@ -66,11 +58,9 @@ const login = async (req, res) => {
   }
 }
 
-/**
- * POST /api/auth/logout
- * Destroys user session
- */
+// Logout user - POST /api/auth/logout
 const logout = (req, res) => {
+  // Destroy session
   req.session.destroy((err) => {
     if (err) {
       return res.status(500).json({ error: 'Logout failed' })
@@ -79,11 +69,9 @@ const logout = (req, res) => {
   })
 }
 
-/**
- * GET /api/auth/session
- * Checks if user is authenticated and returns user info
- */
+// Get current session/user - GET /api/auth/session
 const getSession = async (req, res) => {
+  // Return null if not logged in
   if (!req.session.userId) {
     return res.json({ user: null })
   }

@@ -1,34 +1,15 @@
-/**
- * Contact Service
- * 
- * Contains business logic for contact operations
- */
+// Contact service - handles contact messages
 
 const { getDb } = require('../database')
 
-/**
- * Service to save contact message
- * 
- * @param {string} email - Contact email
- * @param {string} message - Contact message
- * @returns {Promise} Message ID
- */
-const saveContactMessage = (email, message) => {
+// Save contact message
+const saveContactMessage = async (email, message) => {
   const db = getDb()
-
-  return new Promise((resolve, reject) => {
-    db.run(
-      'INSERT INTO contact_messages (email, message) VALUES (?, ?)',
-      [email, message],
-      function(err) {
-        if (err) {
-          reject(new Error('Failed to save contact message'))
-        } else {
-          resolve(this.lastID)
-        }
-      }
-    )
-  })
+  const result = await db.execute(
+    'INSERT INTO contact_messages (email, message) VALUES (?, ?)',
+    [email, message]
+  )
+  return result[0].insertId
 }
 
 module.exports = {

@@ -1,12 +1,12 @@
 <template>
-  <CategoryPage category="dresses" title="Dresses" />
+  <CategoryPage category="sweaters" title="Sweaters" />
 </template>
 
 <script>
 import CategoryPage from './CategoryPage.vue'
 
 export default {
-  name: 'DressesPage',
+  name: 'SweatersPage',
   components: {
     CategoryPage
   }

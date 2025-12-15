@@ -7,46 +7,58 @@
         <div class="shipping-form">
           <h2>Shipping Information</h2>
           
-          <form @submit.prevent="handleSubmit">
+          <form @submit.prevent="handleSubmit" autocomplete="off">
             <div class="form-group">
-              <label>Street Address</label>
+              <label for="street">Street Address *</label>
               <input 
+                id="street"
                 type="text" 
-                v-model="address.street" 
+                v-model.trim="address.street" 
                 required 
                 placeholder="123 Main St"
+                class="form-input"
+                autocomplete="off"
               />
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label>City</label>
+                <label for="city">City *</label>
                 <input 
+                  id="city"
                   type="text" 
-                  v-model="address.city" 
+                  v-model.trim="address.city" 
                   required 
                   placeholder="Nanjing"
+                  class="form-input"
+                  autocomplete="off"
                 />
               </div>
 
               <div class="form-group">
-                <label>Postal Code</label>
+                <label for="postalCode">Postal Code *</label>
                 <input 
+                  id="postalCode"
                   type="text" 
-                  v-model="address.postalCode" 
+                  v-model.trim="address.postalCode" 
                   required 
                   placeholder="210000"
+                  class="form-input"
+                  autocomplete="off"
                 />
               </div>
             </div>
 
             <div class="form-group">
-              <label>Country</label>
+              <label for="country">Country *</label>
               <input 
+                id="country"
                 type="text" 
-                v-model="address.country" 
+                v-model.trim="address.country" 
                 required 
                 placeholder="China"
+                class="form-input"
+                autocomplete="off"
               />
             </div>
 
@@ -190,17 +202,29 @@ label {
   font-size: 0.95rem;
 }
 
-input {
+input,
+.form-input {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
+  box-sizing: border-box;
+  background: #fff;
+  color: #000;
 }
 
-input:focus {
+input:focus,
+.form-input:focus {
   outline: none;
   border-color: #000;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+input:disabled,
+.form-input:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
 }
 
 .error {

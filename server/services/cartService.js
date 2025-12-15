@@ -1,111 +1,106 @@
-/**
- * Cart Service
- * 
- * Contains business logic for cart operations
- */
 
-const { getDb } = require('../database')
+// Cart service - handles shopping cart operations
 
-/**
- * Service to fetch user's cart
- * 
- * @param {number} userId - User ID
- * @returns {Promise} Array of cart items
- */
-const getCart = (userId) => {
+const { getDb } = require('../database') // Database connection
+
+// Get user's cart with product details
+const getCart = async (userId) => {
   const db = getDb()
-
-  return new Promise((resolve, reject) => {
-    db.all(
-      `SELECT ci.id, ci.productId, ci.size, ci.color, ci.quantity,
-              p.name, p.price, p.image, p.category
-       FROM cart_items ci
-       JOIN products p ON ci.productId = p.id
-       WHERE ci.userId = ?`,
-      [userId],
-      (err, items) => {
-        if (err) {
-          reject(new Error('Failed to fetch cart'))
-        } else {
-          resolve(items || [])
-        }
-      }
-    )
-  })
+  const [items] = await db.execute(
+    `SELECT ci.id, ci.productId, ci.size, ci.quantity,
+            p.name, p.price, p.image, p.category
+     FROM cart_items ci
+     JOIN products p ON ci.productId = p.id
+     WHERE ci.userId = ?`,
+    [userId]
+  )
+  return items || []
 }
 
-/**
- * Service to add item to cart
- * 
- * @param {number} userId - User ID
- * @param {Object} item - Cart item {productId, size, color, quantity}
- * @returns {Promise} Created cart item
- */
-const addToCart = (userId, item) => {
+// Add item to cart
+const addToCart = async (userId, item) => {
   const db = getDb()
-  const { productId, size, color, quantity } = item
+  const { productId, size, quantity } = item
+  const requestedQuantity = quantity || 1
 
-  return new Promise((resolve, reject) => {
-    db.run(
-      'INSERT INTO cart_items (userId, productId, size, color, quantity) VALUES (?, ?, ?, ?, ?)',
-      [userId, productId, size || null, color || null, quantity || 1],
-      function(err) {
-        if (err) {
-          reject(new Error('Failed to add to cart'))
-        } else {
-          resolve({
-            id: this.lastID,
-            ...item
-          })
-        }
-      }
+  // Check stock availability before inserting
+  const [stockRows] = await db.execute(
+    'SELECT quantity FROM stock WHERE productId = ? AND size = ?',
+    [productId, size || null]
+  )
+
+  if (!stockRows || stockRows.length === 0) {
+    throw new Error('Product not available in this size')
+  }
+
+  const availableStock = stockRows[0].quantity
+
+  // Check if item already exists in cart
+  const [existingItems] = await db.execute(
+    'SELECT id, quantity FROM cart_items WHERE userId = ? AND productId = ? AND size = ?',
+    [userId, productId, size || null]
+  )
+
+  if (existingItems && existingItems.length > 0) {
+    // Update existing cart item
+    const existingItem = existingItems[0]
+    const newQuantity = existingItem.quantity + requestedQuantity
+
+    // Check if total quantity exceeds stock
+    if (newQuantity > availableStock) {
+      throw new Error(`Insufficient stock. Available: ${availableStock}, Requested: ${newQuantity}`)
+    }
+
+    await db.execute(
+      'UPDATE cart_items SET quantity = ? WHERE id = ?',
+      [newQuantity, existingItem.id]
     )
-  })
+
+    return {
+      id: existingItem.id,
+      productId,
+      size,
+      quantity: newQuantity
+    }
+  } else {
+    // Check if requested quantity is available
+    if (requestedQuantity > availableStock) {
+      throw new Error(`Insufficient stock. Available: ${availableStock}, Requested: ${requestedQuantity}`)
+    }
+
+    // Insert new cart item
+    const [result] = await db.execute(
+      'INSERT INTO cart_items (userId, productId, size, quantity) VALUES (?, ?, ?, ?)',
+      [userId, productId, size || null, requestedQuantity]
+    )
+    
+    return {
+      id: result.insertId,
+      productId,
+      size,
+      quantity: requestedQuantity
+    }
+  }
 }
 
-/**
- * Service to remove item from cart
- * 
- * @param {number} userId - User ID
- * @param {number} cartItemId - Cart item ID
- * @returns {Promise}
- */
-const removeFromCart = (userId, cartItemId) => {
+// Remove item from cart
+const removeFromCart = async (userId, cartItemId) => {
   const db = getDb()
+  const [result] = await db.execute(
+    'DELETE FROM cart_items WHERE id = ? AND userId = ?',
+    [cartItemId, userId]
+  )
 
-  return new Promise((resolve, reject) => {
-    db.run(
-      'DELETE FROM cart_items WHERE id = ? AND userId = ?',
-      [cartItemId, userId],
-      (err) => {
-        if (err) {
-          reject(new Error('Failed to remove item'))
-        } else {
-          resolve()
-        }
-      }
-    )
-  })
+  if (result.affectedRows === 0) {
+    throw new Error('Cart item not found or does not belong to user')
+  }
 }
 
-/**
- * Service to clear user's cart
- * 
- * @param {number} userId - User ID
- * @returns {Promise}
- */
-const clearCart = (userId) => {
+// Clear user's cart
+const clearCart = async (userId) => {
   const db = getDb()
-
-  return new Promise((resolve, reject) => {
-    db.run('DELETE FROM cart_items WHERE userId = ?', [userId], (err) => {
-      if (err) {
-        reject(new Error('Failed to clear cart'))
-      } else {
-        resolve()
-      }
-    })
-  })
+  const [result] = await db.execute('DELETE FROM cart_items WHERE userId = ?', [userId])
+  return result.affectedRows
 }
 
 module.exports = {

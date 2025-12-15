@@ -1,15 +1,9 @@
-/**
- * Contact Controller
- * 
- * Handles HTTP requests for contact form routes
- */
+
+// Contact controller - handles contact form routes
 
 const contactService = require('../services/contactService')
 
-/**
- * POST /api/contact
- * Saves contact message (public route, no authentication required)
- */
+// Save contact message
 const saveContactMessage = async (req, res) => {
   const { email, message } = req.body
 

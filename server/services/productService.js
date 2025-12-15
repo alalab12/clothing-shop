@@ -1,66 +1,43 @@
-/**
- * Product Service
- * 
- * Contains business logic for product operations
- */
 
-const { getDb } = require('../database')
+// Product service - handles product operations
 
-/**
- * Service to fetch all products
- * 
- * @returns {Promise} Array of all products
- */
-const getAllProducts = () => {
+const { getDb } = require('../database') // Database connection
+
+// Fetch all products sorted by category
+const getAllProducts = async () => {
   const db = getDb()
-
-  return new Promise((resolve, reject) => {
-    db.all('SELECT * FROM products ORDER BY category, name', (err, products) => {
-      if (err) {
-        reject(new Error('Failed to fetch products'))
-      } else {
-        resolve(products || [])
-      }
-    })
-  })
+  const [products] = await db.execute('SELECT * FROM products ORDER BY category, name')
+  return products || []
 }
 
-/**
- * Service to fetch product by ID with available stock info
- * 
- * @param {number} productId - Product ID
- * @returns {Promise} Product with sizes and colors
- */
-const getProductById = (productId) => {
+// Fetch product by ID with stock info
+const getProductById = async (productId) => {
   const db = getDb()
-
-  return new Promise((resolve, reject) => {
-    db.get('SELECT * FROM products WHERE id = ?', [productId], (err, product) => {
-      if (err || !product) {
-        return reject(new Error('Product not found'))
-      }
-
-      // Get available sizes and colors
-      db.all(
-        'SELECT DISTINCT size, color FROM stock WHERE productId = ? AND quantity > 0',
-        [productId],
-        (err, stock) => {
-          if (err) {
-            return reject(new Error('Failed to fetch stock'))
-          }
-
-          const sizes = [...new Set(stock.map(s => s.size))]
-          const colors = [...new Set(stock.map(s => s.color))]
-
-          resolve({
-            ...product,
-            sizes,
-            colors
-          })
-        }
-      )
-    })
+  
+  const [products] = await db.execute('SELECT * FROM products WHERE id = ?', [productId])
+  const product = products[0]
+  
+  if (!product) {
+    throw new Error('Product not found')
+  }
+  
+  // Get all sizes with their stock quantities
+  const [stock] = await db.execute(
+    'SELECT size, quantity FROM stock WHERE productId = ? ORDER BY FIELD(size, "XS", "S", "M", "L", "XL")',
+    [productId]
+  )
+  
+  // Create size availability map
+  const sizeStock = {}
+  stock.forEach(s => {
+    sizeStock[s.size] = s.quantity
   })
+  
+  return {
+    ...product,
+    sizes: ['XS', 'S', 'M', 'L', 'XL'],
+    sizeStock
+  }
 }
 
 module.exports = {

@@ -1,137 +1,89 @@
-/**
- * Order Service
- * 
- * Contains business logic for order operations
- * Handles complex operations like stock verification and order creation
- */
+
+// Order service - handles order operations
 
 const { getDb } = require('../database')
 
-/**
- * Service to verify stock availability before order
- * Checks if all cart items have sufficient stock
- * 
- * @param {Array} cartItems - Array of cart items
- * @returns {Promise} Resolves if all items have stock, rejects with error message
- */
-const verifyStock = (cartItems) => {
+// Verify stock availability before order
+const verifyStock = async (cartItems) => {
   const db = getDb()
+  const errors = []
 
-  return new Promise((resolve, reject) => {
-    let checkCount = 0
-    const errors = []
+  for (const item of cartItems) {
+    const [stock] = await db.execute(
+      'SELECT quantity FROM stock WHERE productId = ? AND size = ?',
+      [item.productId, item.size]
+    )
 
-    cartItems.forEach((item) => {
-      db.get(
-        'SELECT quantity FROM stock WHERE productId = ? AND size = ? AND color = ?',
-        [item.productId, item.size, item.color || ''],
-        (err, stock) => {
-          if (err || !stock) {
-            errors.push(`Product ${item.productId} is not available`)
-          } else if (stock.quantity < item.quantity) {
-            errors.push(`Insufficient stock for product ${item.productId}. Available: ${stock.quantity}, Requested: ${item.quantity}`)
-          }
+    if (!stock || stock.length === 0) {
+      errors.push(`Product ${item.productId} is not available`)
+    } else if (stock[0].quantity < item.quantity) {
+      errors.push(`Insufficient stock for product ${item.productId}. Available: ${stock[0].quantity}, Requested: ${item.quantity}`)
+    }
+  }
 
-          checkCount++
-
-          if (checkCount === cartItems.length) {
-            if (errors.length > 0) {
-              reject(new Error(errors.join(', ')))
-            } else {
-              resolve()
-            }
-          }
-        }
-      )
-    })
-  })
+  if (errors.length > 0) {
+    throw new Error(errors.join(', '))
+  }
 }
 
-/**
- * Service to create order and update stock
- * Creates order, adds order items, and decrements stock
- * 
- * Reference: Stock decrement on order completion requirement
- * 
- * @param {number} userId - User ID
- * @param {Array} cartItems - Array of cart items
- * @param {number} total - Order total
- * @param {Object} shippingAddress - Shipping address
- * @returns {Promise} Order ID
- */
-const createOrder = (userId, cartItems, total, shippingAddress) => {
+// Create order and update stock
+const createOrder = async (userId, cartItems, total, shippingAddress) => {
   const db = getDb()
 
-  return new Promise((resolve, reject) => {
-    // Create order
-    db.run(
-      'INSERT INTO orders (userId, total, shippingAddress, status) VALUES (?, ?, ?, ?)',
-      [userId, total, JSON.stringify(shippingAddress), 'confirmed'],
-      function(err) {
-        if (err) {
-          return reject(new Error('Failed to create order'))
-        }
+  // Create order
+  const [orderResult] = await db.execute(
+    'INSERT INTO orders (userId, total, shippingAddress, status) VALUES (?, ?, ?, ?)',
+    [userId, total, JSON.stringify(shippingAddress), 'confirmed']
+  )
 
-        const orderId = this.lastID
-        const stmt = db.prepare(
-          'INSERT INTO order_items (orderId, productId, size, color, quantity, price) VALUES (?, ?, ?, ?, ?, ?)'
-        )
+  const orderId = orderResult.insertId
 
-        let completed = 0
-
-        cartItems.forEach((item) => {
-          // Get product price
-          db.get('SELECT price FROM products WHERE id = ?', [item.productId], (err, product) => {
-            if (!err && product) {
-              stmt.run([orderId, item.productId, item.size, item.color, item.quantity, product.price])
-
-              // Decrement stock for this item
-              db.run(
-                'UPDATE stock SET quantity = quantity - ? WHERE productId = ? AND size = ? AND color = ?',
-                [item.quantity, item.productId, item.size, item.color || ''],
-                (updateErr) => {
-                  if (updateErr) {
-                    console.error('Error updating stock:', updateErr)
-                  }
-                }
-              )
-            }
-
-            completed++
-
-            if (completed === cartItems.length) {
-              stmt.finalize()
-              resolve(orderId)
-            }
-          })
-        })
-      }
+  // Process each cart item
+  for (const item of cartItems) {
+    console.log(`Processing order item: ProductID=${item.productId}, Size=${item.size}, Quantity=${item.quantity}`)
+    
+    const [product] = await db.execute(
+      'SELECT price FROM products WHERE id = ?',
+      [item.productId]
     )
-  })
+
+    if (!product || product.length === 0) {
+      throw new Error(`Product ${item.productId} not found`)
+    }
+
+    // Insert order item
+    await db.execute(
+      'INSERT INTO order_items (orderId, productId, size, quantity, price) VALUES (?, ?, ?, ?, ?)',
+      [orderId, item.productId, item.size, item.quantity, product[0].price]
+    )
+
+    // Decrement stock for specific size only
+    console.log(`Decrementing stock: ProductID=${item.productId}, Size=${item.size}, Quantity to remove=${item.quantity}`)
+    
+    const [updateResult] = await db.execute(
+      'UPDATE stock SET quantity = quantity - ? WHERE productId = ? AND size = ?',
+      [item.quantity, item.productId, item.size]
+    )
+
+    console.log(`Stock update result: Rows affected=${updateResult.affectedRows}`)
+
+    // Verify stock was updated
+    if (updateResult.affectedRows === 0) {
+      throw new Error(`Failed to update stock for product ${item.productId}, size ${item.size}. Stock entry may not exist.`)
+    }
+  }
+
+  return orderId
 }
 
-/**
- * Service to get user's orders
- * 
- * @param {number} userId - User ID
- * @returns {Promise} Array of user's orders
- */
-const getUserOrders = (userId) => {
+// Get user's orders
+const getUserOrders = async (userId) => {
   const db = getDb()
-
-  return new Promise((resolve, reject) => {
-    db.all(
-      'SELECT * FROM orders WHERE userId = ? ORDER BY createdAt DESC',
-      [userId],
-      (err, orders) => {
-        if (err) {
-          reject(new Error('Failed to fetch orders'))
-        } else {
-          resolve(orders || [])
-        }
-      }
-    )
-  })
+  const [orders] = await db.execute(
+    'SELECT * FROM orders WHERE userId = ? ORDER BY createdAt DESC',
+    [userId]
+  )
+  return orders || []
 }
 
 module.exports = {

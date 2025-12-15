@@ -1,37 +1,16 @@
-/**
- * Authentication Middleware
- * 
- * Implements stateful authentication using express-session.
- * Validates that user sessions are active and valid.
- * 
- * Pattern: Express middleware for route protection
- * Reference: 07-Authentication and database.pdf - Stateful Authentication Flow
- */
+// Auth middleware - validates user sessions
 
-/**
- * Middleware to require user authentication
- * Checks if req.session.userId exists (indicates authenticated session)
- * Returns 401 Unauthorized if not authenticated
- */
+// Check if user is logged in (has session ID)
+// Used on protected routes that require authentication
 const requireAuth = (req, res, next) => {
+  // Return error if user is not logged in
   if (!req.session.userId) {
     return res.status(401).json({ error: 'Authentication required' })
   }
-  next()
-}
-
-/**
- * Middleware to optionally load user info without requiring auth
- * Passes user info if authenticated, otherwise continues
- */
-const optionalAuth = (req, res, next) => {
-  if (req.session.userId) {
-    req.userId = req.session.userId
-  }
+  // Continue to next handler
   next()
 }
 
 module.exports = {
-  requireAuth,
-  optionalAuth
+  requireAuth
 }

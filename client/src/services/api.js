@@ -1,24 +1,11 @@
-/**
- * API Service Module
- * 
- * Centralized API client for all backend communication
- * Handles HTTP requests to the backend API
- * 
- * Pattern: API Service Layer for separation of concerns
- * Reference: 03-ModernFrontEnd.pdf - Service layer pattern
- * Reference: 05-ModernBackEnd.pdf - RESTful API design
- * 
- * Usage:
- *   import { authAPI, productAPI, cartAPI } from '@/services/api'
- *   const result = await authAPI.login({ email, password })
- */
+// API Service Module
+// Centralized API client for all backend communication
+// Pattern: Service layer for separation of concerns
 
-const API_BASE = 'http://localhost:3000/api'
+// Use relative URL - frontend and backend on same domain (no CORS needed)
+const API_BASE = '/api'
 
-/**
- * Helper function to handle API responses
- * Checks for errors and returns parsed JSON
- */
+// Handle API responses and errors
 const handleResponse = async (response) => {
   const data = await response.json()
   
@@ -134,15 +121,14 @@ export const cartAPI = {
    * Add item to cart
    * @param {number} productId - Product ID
    * @param {string} size - Product size
-   * @param {string} color - Product color
    * @param {number} quantity - Item quantity
    */
-  async add(productId, size, color, quantity = 1) {
+  async add(productId, size, quantity = 1) {
     const response = await fetch(`${API_BASE}/cart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ productId, size, color, quantity })
+      body: JSON.stringify({ productId, size, quantity })
     })
     return handleResponse(response)
   },
@@ -153,17 +139,6 @@ export const cartAPI = {
    */
   async remove(itemId) {
     const response = await fetch(`${API_BASE}/cart/${itemId}`, {
-      method: 'DELETE',
-      credentials: 'include'
-    })
-    return handleResponse(response)
-  },
-
-  /**
-   * Clear entire cart
-   */
-  async clear() {
-    const response = await fetch(`${API_BASE}/cart`, {
       method: 'DELETE',
       credentials: 'include'
     })

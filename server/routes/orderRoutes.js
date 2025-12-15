@@ -1,28 +1,17 @@
-/**
- * Order Routes
- * 
- * Defines API endpoints for order operations
- * All routes require authentication
- */
 
-const express = require('express')
-const router = express.Router()
-const orderController = require('../controllers/orderController')
-const { requireAuth } = require('../middleware/authMiddleware')
+// Order API routes
+// Defines API endpoints for order operations
 
-/**
- * POST /api/orders
- * Create new order from cart
- * Body: { total, shippingAddress }
- * Protected: Requires authentication
- */
+const express = require('express') // Express framework
+const router = express.Router() // Router instance
+const orderController = require('../controllers/orderController') // Order handler
+const { requireAuth } = require('../middleware/authMiddleware') // Auth check
+
+// Create new order from cart (requires login)
 router.post('/', requireAuth, orderController.createOrder)
 
-/**
- * GET /api/orders
- * Fetch user's orders
- * Protected: Requires authentication
- */
+// Get user's orders (requires login)
 router.get('/', requireAuth, orderController.getOrders)
 
+// Export the router
 module.exports = router

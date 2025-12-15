@@ -1,39 +1,50 @@
+﻿
 <template>
   <div id="app">
+
     <NavBar />
     <main class="page-shell">
       <router-view />
     </main>
+
     <footer class="site-footer">
       <div class="footer-links">
-        <a href="#" @click.prevent="scrollToSection('about')">About us</a>
+        <a href="#" @click.prevent="scrollToSection('about')">About us</a> 
         <a href="#" @click.prevent="scrollToSection('contact')">Contact</a>
       </div>
     </footer>
+
   </div>
 </template>
 
+
+
+
 <script>
-import { onMounted } from 'vue'
-import NavBar from './components/NavBar.vue'
-import { useAuth } from './composables/useAuth'
+// Root application component
+// Manages layout, navigation, and global state
+
+import { onMounted } from 'vue' // Vue lifecycle
+import NavBar from './components/NavBar.vue' // Navigation bar
+import { useAuth } from './composables/useAuth' // Auth state
 
 export default {
   name: 'App',
-  components: { NavBar },
+  components: { NavBar }, // Register navbar
   setup() {
     const auth = useAuth()
 
     onMounted(() => {
-      // Vérifier la session au chargement de l'app
+      // Check session on app load
       auth.checkSession()
     })
 
     return {}
   },
   methods: {
+    // Scroll to section on same page or navigate and scroll
     scrollToSection(sectionId) {
-      // Naviguer vers la page d'accueil si on n'y est pas déjà
+      // Navigate to home if not already there
       if (this.$route.path !== '/') {
         this.$router.push('/').then(() => {
           this.$nextTick(() => {
@@ -44,10 +55,11 @@ export default {
         this.scrollTo(sectionId)
       }
     },
+    // Smooth scroll to element
     scrollTo(sectionId) {
-      const element = document.getElementById(sectionId)
+      const element = document.getElementById(sectionId) // Find element
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' }) // Scroll smooth
       }
     }
   }
@@ -149,3 +161,4 @@ body {
   padding: 0 1rem;
 }
 </style>
+

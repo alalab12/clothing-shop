@@ -9,9 +9,8 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "sqlite3": "^5.1.6",
+    "mysql2": "^3.6.5",
     "bcrypt": "^5.1.1",
-    "express-session": "^1.17.3",
-    "cors": "^2.8.5"
+    "express-session": "^1.17.3"
   }
 }
